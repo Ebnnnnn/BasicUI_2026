@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -35,6 +36,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,10 +49,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import tw.edu.pu.csim.s1141254.basicui_2026.ui.theme.BasicUI_2026Theme
 
 class MainActivity : ComponentActivity() {
@@ -81,6 +85,7 @@ fun Main(modifier: Modifier = Modifier) {
         ColumnExample(modifier)
         TextFieldExample(modifier)
         LazyRowExample(modifier)
+        SimpleVideoPlayer()
 
     }
 }
@@ -242,5 +247,54 @@ fun LazyRowExample(modifier: Modifier = Modifier) {
         }
     }
 }
+
+@Composable
+fun SimpleVideoPlayer(
+    videos: List<Int> = listOf(R.raw.love, R.raw.handpan),   // 型別 + 逗號
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var currentIndex by remember { mutableStateOf(0) }
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            playWhenReady = true
+        }
+    }
+
+    // 每次 currentIndex 改變，就載入對應的影片
+    LaunchedEffect(currentIndex) {
+        val uri = "android.resource://${context.packageName}/${videos[currentIndex]}"
+        exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+        exoPlayer.prepare()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { exoPlayer.release() }
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply { player = exoPlayer }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { currentIndex = (currentIndex + 1) % videos.size }
+        ) {
+            Text("切換影片 (${currentIndex + 1}/${videos.size})")
+        }
+    }
+}
+
 
 
